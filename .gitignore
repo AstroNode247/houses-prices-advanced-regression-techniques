@@ -1,5 +1,6 @@
 /.idea/
 
+/data/submission_test.csv
 /notebooks/.ipynb_checkpoints/
 /.vscode/
 /env/

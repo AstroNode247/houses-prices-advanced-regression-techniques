@@ -3,10 +3,13 @@ import numpy as np
 
 from scipy import stats
 
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LassoCV
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.preprocessing import OneHotEncoder
+
+def root_mean_squared_error(y_true, y_pred):
+    return np.sqrt(mean_squared_error(y_true, y_pred))
 
 def read_data(train_path, test_path):
     train = pd.read_csv(train_path)
@@ -59,16 +62,36 @@ def train_model():
     y = train_df['SalePrice']
     X = train_df.drop('SalePrice', axis=1)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    linear = LinearRegression()
-    linear.fit(X_train, y_train)
+    lasso = LassoCV(alphas=[0.0001, 0.0003, 0.0004, 0.0006, 0.0008, 0.001, 0.002, 0.004, 0.006, 0.008,
+                        0.01, 0.05, 1], cv=5)
+    lasso.fit(X_train, y_train)
 
-    y_pred = linear.predict(X_test)
-    mse = mean_squared_error(np.exp(y_test), np.exp(y_pred))
-    print('The mean squarred error : ', mse)
 
-    return linear, ohe
+    alpha = lasso.alpha_
+    lasso = LassoCV(alphas=[alpha*0.6, alpha*0.7, alpha*0.8, alpha*0.9,
+                            alpha*1, alpha*1.1, alpha*1.2, alpha*1.3, alpha*1.5,], cv=5)
+    lasso.fit(X_train, y_train)
+    print('The best alpha : ', lasso.alpha_)
+
+    y_pred = lasso.predict(X_test)
+    y_train_pred = lasso.predict(X_train)
+
+    test_mse = root_mean_squared_error(y_test, y_pred)
+    train_mse = root_mean_squared_error(y_train, y_train_pred)
+
+    print('Root mean squarred error on training logset : ', np.sqrt(train_mse))
+    print('Root mean squarred error on testing logset : ', np.sqrt(test_mse))
+
+    print('Root mean squarred error on training set : ', root_mean_squared_error(np.exp(y_train), np.exp(y_train_pred)))
+    print('Root mean squarred error on testing set : ', root_mean_squared_error(np.exp(y_test), np.exp(y_pred)))
+
+    coefs = pd.Series(lasso.coef_, index = X_train.columns)
+    print(str(sum(coefs != 0)) + " features and eliminated the other " +  \
+        str(sum(coefs == 0)) + " features")
+
+    return lasso, ohe
 
 def generate_submission(model, encoder):
     train_df, test_df = read_data('data/train.csv', 'data/test.csv')

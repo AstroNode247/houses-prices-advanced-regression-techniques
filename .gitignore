@@ -1,6 +1,10 @@
 /.idea/
-
-/data/submission_test.csv
-/notebooks/.ipynb_checkpoints/
 /.vscode/
 /env/
+
+house-prices/data/test.csv
+house-prices/data/train.csv
+notebooks/test.csv
+notebooks/train.csv
+/notebooks/.ipynb_checkpoints/
+
